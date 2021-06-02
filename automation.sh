@@ -43,8 +43,30 @@ upload_tar_logs() {
         tar -cvf /tmp/$myname-httpd-logs-$timestamp.tar /var/log/apache2/*.log
         aws s3 cp /tmp/$myname-httpd-logs-$timestamp.tar s3://$s3_bucket/$myname-httpd-logs-$timestamp.tar
 }
+book_keeping() {
+        inventory_file="/var/www/html/inventory.html"
+        if [ -f "$inventory_file" ]; then
+                echo "$inventory_file exists."
+        else
+                echo "Creating $inventory_file"
+                echo "LogType               DateCreated               Type      Size" >> $inventory_file
+        fi
+        size=`du -sh /tmp/$myname-httpd-logs-$timestamp.tar | awk  '{print $1}'`
+        echo "httpd-logs                $timestamp              tar             $size" >> $inventory_file
+}
+cron_job() {
+        cron_file="/etc/cron.d/automation"
+        if [ -f "$cron_file" ]; then
+            echo "$cron_file exists."
+        else
+                echo "Creating $cron_file"
+                echo "5 2 * * * root sh /root/Automation_Project/automation.sh" >> $cron_file
+        fi
+}
 instance_update
 server_installation
 service_restart
 service_enabled
 upload_tar_logs
+book_keeping
+cron_job
